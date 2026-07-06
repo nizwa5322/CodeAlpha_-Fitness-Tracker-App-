@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Fitness Tracker App
 
 A simple, user-friendly mobile application designed to help users track their daily fitness activities, log workouts, and visualize progress toward their health goals.
@@ -37,3 +38,22 @@ The Fitness Tracker App simplifies health monitoring by allowing users to manual
 The UI follows a minimalist approach with "glanceable" data—using high-contrast elements and progress visuals to ensure users can check their progress in seconds.
 
 
+=======
+# task4_fitnesstracherapp
+
+A new Flutter project.
+
+## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
+>>>>>>> addb71d (changed)
