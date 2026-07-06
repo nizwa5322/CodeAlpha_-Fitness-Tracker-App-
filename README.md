@@ -36,5 +36,4 @@ The Fitness Tracker App simplifies health monitoring by allowing users to manual
 ## Design Philosophy
 The UI follows a minimalist approach with "glanceable" data—using high-contrast elements and progress visuals to ensure users can check their progress in seconds.
 
-## License
-This project is licensed under the MIT License
+
