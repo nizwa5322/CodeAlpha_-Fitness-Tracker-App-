@@ -28,8 +28,8 @@ class SummaryCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withOpacity(0.2),
-              Colors.grey.shade900.withOpacity(0.8),
+              color.withValues(alpha: 0.2),
+              Colors.grey.shade900.withValues(alpha: 0.8),
             ],
           ),
           borderRadius: BorderRadius.circular(16),

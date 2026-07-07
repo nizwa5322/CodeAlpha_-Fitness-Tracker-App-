@@ -19,7 +19,6 @@ class _LogScreenState extends State<LogScreen> {
   final _caloriesController = TextEditingController();
   final _durationController = TextEditingController();
 
-  // Use a separate variable for the selected value
   String _selectedWorkoutType = 'Running';
   DateTime _selectedDate = DateTime.now();
   bool _isSubmitting = false;
@@ -33,8 +32,6 @@ class _LogScreenState extends State<LogScreen> {
     'Swimming',
     'HIIT',
     'Pilates',
-    'Dancing',
-    'Boxing',
   ];
 
   Future<void> _saveRecord() async {
@@ -111,10 +108,7 @@ class _LogScreenState extends State<LogScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Workout Type Dropdown - FIXED
               DropdownButtonFormField<String>(
-                // Use initialValue instead of value
                 initialValue: _selectedWorkoutType,
                 dropdownColor: Colors.grey.shade900,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -151,8 +145,6 @@ class _LogScreenState extends State<LogScreen> {
                     value == null ? 'Select a workout type' : null,
               ),
               const SizedBox(height: 20),
-
-              // Steps Input
               TextFormField(
                 controller: _stepsController,
                 keyboardType: TextInputType.number,
@@ -175,15 +167,19 @@ class _LogScreenState extends State<LogScreen> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Enter steps';
-                  if (int.tryParse(v) == null) return 'Enter a valid number';
-                  if (int.parse(v) < 0) return 'Steps cannot be negative';
+                  if (v == null || v.isEmpty) {
+                    return 'Enter steps';
+                  }
+                  if (int.tryParse(v) == null) {
+                    return 'Enter a valid number';
+                  }
+                  if (int.parse(v) < 0) {
+                    return 'Steps cannot be negative';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // Calories Input
               TextFormField(
                 controller: _caloriesController,
                 keyboardType: TextInputType.number,
@@ -206,15 +202,19 @@ class _LogScreenState extends State<LogScreen> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Enter calories';
-                  if (int.tryParse(v) == null) return 'Enter a valid number';
-                  if (int.parse(v) < 0) return 'Calories cannot be negative';
+                  if (v == null || v.isEmpty) {
+                    return 'Enter calories';
+                  }
+                  if (int.tryParse(v) == null) {
+                    return 'Enter a valid number';
+                  }
+                  if (int.parse(v) < 0) {
+                    return 'Calories cannot be negative';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // Duration Input
               TextFormField(
                 controller: _durationController,
                 keyboardType: TextInputType.number,
@@ -236,16 +236,19 @@ class _LogScreenState extends State<LogScreen> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Enter duration';
-                  if (int.tryParse(v) == null) return 'Enter a valid number';
-                  if (int.parse(v) < 1)
+                  if (v == null || v.isEmpty) {
+                    return 'Enter duration';
+                  }
+                  if (int.tryParse(v) == null) {
+                    return 'Enter a valid number';
+                  }
+                  if (int.parse(v) < 1) {
                     return 'Duration must be at least 1 minute';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 20),
-
-              // Date Picker
               ListTile(
                 leading:
                     const Icon(Icons.calendar_today, color: Colors.tealAccent),
@@ -286,8 +289,6 @@ class _LogScreenState extends State<LogScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Submit Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

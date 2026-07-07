@@ -12,10 +12,11 @@ class DashboardScreen extends StatefulWidget {
 class DashboardScreenState extends State<DashboardScreen> {
   final DatabaseHelper dbHelper = DatabaseHelper();
   List<FitnessRecord> _records = [];
+  List<FitnessRecord> _allRecords = [];
   Map<String, double> _summary = {};
   bool _isLoading = true;
+  String _activeFilter = 'All Time';
 
-  // Constants
   static const int dailyStepGoal = 10000;
 
   @override
@@ -25,21 +26,18 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final data = await dbHelper.getRecords();
       setState(() {
+        _allRecords = data;
         _records = data;
         _summary = _calculateWeeklySummary(data);
+        _activeFilter = 'All Time';
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -78,21 +76,14 @@ class DashboardScreenState extends State<DashboardScreen> {
     };
   }
 
-  void refreshData() {
-    _loadData();
-  }
+  void refreshData() => _loadData();
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return '🌅 Good Morning';
-    } else if (hour < 17) {
-      return '☀️ Good Afternoon';
-    } else if (hour < 21) {
-      return '🌇 Good Evening';
-    } else {
-      return '🌙 Good Night';
-    }
+    if (hour < 12) return '🌅 Good Morning';
+    if (hour < 17) return '☀️ Good Afternoon';
+    if (hour < 21) return '🌇 Good Evening';
+    return '🌙 Good Night';
   }
 
   int _getTodaySteps() {
@@ -113,9 +104,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     return todayRecord.steps;
   }
 
-  bool _isGoalMet(int steps) {
-    return steps >= dailyStepGoal;
-  }
+  bool _isGoalMet(int steps) => steps >= dailyStepGoal;
 
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
@@ -124,64 +113,45 @@ class DashboardScreenState extends State<DashboardScreen> {
         );
   }
 
-  // Built-in Summary Card Widget
+  // ============ BUILT-IN SUMMARY CARD ============
   Widget _buildSummaryCard(String label, int value, IconData icon, Color color,
       {String? subtitle}) {
-    // Fixed: Using withValues() instead of withOpacity()
     final colorWithAlpha = color.withValues(alpha: 0.2);
     final bgColor = Colors.grey.shade900.withValues(alpha: 0.8);
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              colorWithAlpha,
-              bgColor,
-            ],
+            colors: [colorWithAlpha, bgColor],
           ),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: color,
-              size: 28,
-            ),
+            Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
             Text(
               value.toString(),
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
               textAlign: TextAlign.center,
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 2),
               Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey.shade600,
-                ),
+                subtitle!,
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -191,7 +161,7 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Built-in Steps Chart Widget
+  // ============ SIMPLE CHART (No fl_chart needed) ============
   Widget _buildStepsChart() {
     final now = DateTime.now();
     final weekDays =
@@ -214,14 +184,13 @@ class DashboardScreenState extends State<DashboardScreen> {
       return record.steps;
     }).toList();
 
-    final maxSteps = stepsData.reduce((a, b) => a > b ? a : b);
-    final yMax = maxSteps > 0 ? maxSteps * 1.3 : 1000;
+    final maxSteps =
+        stepsData.isEmpty ? 0 : stepsData.reduce((a, b) => a > b ? a : b);
+    final yMax = maxSteps > 0 ? maxSteps * 1.3 : 1000.0;
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -233,17 +202,17 @@ class DashboardScreenState extends State<DashboardScreen> {
                 SizedBox(width: 8),
                 Text(
                   'Weekly Steps Progress',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             SizedBox(
               height: 200,
-              child: _buildSimpleChart(stepsData, weekDays, yMax.toDouble()),
+              child: CustomPaint(
+                painter: _ChartPainter(stepsData, weekDays, yMax),
+                size: const Size(double.infinity, 200),
+              ),
             ),
           ],
         ),
@@ -251,24 +220,13 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Simple chart using CustomPaint
-  Widget _buildSimpleChart(
-      List<int> stepsData, List<DateTime> weekDays, double yMax) {
-    return CustomPaint(
-      painter: _ChartPainter(stepsData, weekDays, yMax),
-      size: const Size(double.infinity, 200),
-    );
-  }
-
-  // Built-in Recent Activities Widget
+  // ============ RECENT ACTIVITIES ============
   Widget _buildRecentActivities() {
     final recentRecords = _records.reversed.take(5).toList();
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -280,10 +238,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                 SizedBox(width: 8),
                 Text(
                   'Recent Activities',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -294,10 +249,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                 child: Center(
                   child: Text(
                     'No recent activities',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
                   ),
                 ),
               )
@@ -315,7 +267,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         case 'running':
           return Icons.directions_run;
         case 'cycling':
-          return Icons.directions_bike; // Fixed: Changed from Icons.cycling
+          return Icons.directions_bike;
         case 'weightlifting':
           return Icons.fitness_center;
         case 'yoga':
@@ -368,58 +320,39 @@ class DashboardScreenState extends State<DashboardScreen> {
       return months[month - 1];
     }
 
-    // Fixed: Using withValues() instead of withOpacity()
+    String getWeekday(int weekday) {
+      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return weekdays[weekday - 1];
+    }
+
     final colorWithAlpha = getColor(record.workoutType).withValues(alpha: 0.2);
 
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: colorWithAlpha,
-        child: Icon(
-          getIcon(record.workoutType),
-          color: getColor(record.workoutType),
-          size: 22,
-        ),
+        child: Icon(getIcon(record.workoutType),
+            color: getColor(record.workoutType), size: 22),
       ),
-      title: Text(
-        record.workoutType,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      title: Text(record.workoutType,
+          style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(
         '${record.steps} steps • ${record.calories} cal • ${record.workoutDuration} min',
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.grey.shade400,
-        ),
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
       ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            '${getMonth(record.date.month)} ${record.date.day}',
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            _getWeekday(record.date.weekday),
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
-            ),
-          ),
+          Text('${getMonth(record.date.month)} ${record.date.day}',
+              style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(getWeekday(record.date.weekday),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
         ],
       ),
     );
   }
 
-  String _getWeekday(int weekday) {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return weekdays[weekday - 1];
-  }
-
+  // ============ BUILD ============
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -427,34 +360,49 @@ class DashboardScreenState extends State<DashboardScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _getGreeting(),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.normal,
-                color: Colors.grey,
-              ),
-            ),
-            const Text(
-              'Fitness Dashboard',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(_getGreeting(),
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.grey)),
+            const Text('Fitness Dashboard',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
+          if (_activeFilter != 'All Time')
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.tealAccent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.tealAccent),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.filter_alt,
+                      size: 16, color: Colors.tealAccent),
+                  const SizedBox(width: 4),
+                  Text(_activeFilter,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.tealAccent,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _resetFilter,
+                    child: const Icon(Icons.close,
+                        size: 14, color: Colors.tealAccent),
+                  ),
+                ],
+              ),
+            ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Refresh',
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-            tooltip: 'Filter',
-          ),
+              icon: const Icon(Icons.filter_list),
+              onPressed: _showFilterDialog),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: _isLoading
@@ -462,17 +410,10 @@ class DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(
-                    color: Colors.tealAccent,
-                  ),
+                  CircularProgressIndicator(color: Colors.tealAccent),
                   SizedBox(height: 16),
-                  Text(
-                    'Loading your fitness data...',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text('Loading your fitness data...',
+                      style: TextStyle(color: Colors.grey, fontSize: 14)),
                 ],
               ),
             )
@@ -487,28 +428,35 @@ class DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.fitness_center,
-            size: 80,
-            color: Colors.grey.shade600,
-          ),
+          Icon(Icons.fitness_center, size: 80, color: Colors.grey.shade600),
           const SizedBox(height: 16),
           Text(
-            'No activities logged yet',
+            _activeFilter != 'All Time'
+                ? 'No activities found for $_activeFilter'
+                : 'No activities logged yet',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade400,
-            ),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade400),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the "Log Activity" tab to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            _activeFilter != 'All Time'
+                ? 'Try changing your filter or log a new activity'
+                : 'Tap the "Log Activity" tab to get started',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
+          if (_activeFilter != 'All Time') ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _resetFilter,
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Show All Data'),
+              style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+            ),
+          ],
         ],
       ),
     );
@@ -537,14 +485,11 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildGoalProgressCard(int todaySteps, bool goalMet) {
-    final progress = todaySteps / dailyStepGoal;
-    final progressPercent = progress.clamp(0.0, 1.0);
+    final progressPercent = (todaySteps / dailyStepGoal).clamp(0.0, 1.0);
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -553,18 +498,12 @@ class DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Today\'s Progress',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                const Text('Today\'s Progress',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: goalMet ? Colors.green : Colors.orange,
                     borderRadius: BorderRadius.circular(20),
@@ -572,10 +511,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                   child: Text(
                     goalMet ? '🎯 Goal Met!' : 'In Progress',
                     style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black),
                   ),
                 ),
               ],
@@ -584,19 +522,13 @@ class DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Steps',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
+                Text('Steps',
+                    style:
+                        TextStyle(fontSize: 14, color: Colors.grey.shade400)),
                 Text(
                   '${_formatNumber(todaySteps)} / ${_formatNumber(dailyStepGoal)}',
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -614,20 +546,12 @@ class DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${(progressPercent * 100).toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
-                Text(
-                  goalMet ? '✅ Complete' : 'Keep going!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade400,
-                  ),
-                ),
+                Text('${(progressPercent * 100).toStringAsFixed(0)}%',
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                Text(goalMet ? '✅ Complete' : 'Keep going!',
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade400)),
               ],
             ),
           ],
@@ -696,94 +620,58 @@ class DashboardScreenState extends State<DashboardScreen> {
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '📊 Weekly Averages',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            const Text('📊 Weekly Averages',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: Column(
                     children: [
-                      Text(
-                        _formatNumber(avgSteps),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.tealAccent,
-                        ),
-                      ),
-                      Text(
-                        'Avg Steps',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
+                      Text(_formatNumber(avgSteps),
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.tealAccent)),
+                      Text('Avg Steps',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade400)),
                     ],
                   ),
                 ),
-                Container(
-                  height: 30,
-                  width: 1,
-                  color: Colors.grey.shade800,
-                ),
+                Container(height: 30, width: 1, color: Colors.grey.shade800),
                 Expanded(
                   child: Column(
                     children: [
-                      Text(
-                        avgCalories.toString(),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orangeAccent,
-                        ),
-                      ),
-                      Text(
-                        'Avg Calories',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
+                      Text(avgCalories.toString(),
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orangeAccent)),
+                      Text('Avg Calories',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade400)),
                     ],
                   ),
                 ),
-                Container(
-                  height: 30,
-                  width: 1,
-                  color: Colors.grey.shade800,
-                ),
+                Container(height: 30, width: 1, color: Colors.grey.shade800),
                 Expanded(
                   child: Column(
                     children: [
-                      Text(
-                        '${_records.length}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.greenAccent,
-                        ),
-                      ),
-                      Text(
-                        'Total Activities',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade400,
-                        ),
-                      ),
+                      Text('${_records.length}',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.greenAccent)),
+                      Text('Total Activities',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade400)),
                     ],
                   ),
                 ),
@@ -791,6 +679,22 @@ class DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ============ FILTER METHODS ============
+  void _resetFilter() {
+    setState(() {
+      _records = _allRecords;
+      _summary = _calculateWeeklySummary(_allRecords);
+      _activeFilter = 'All Time';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🔓 Filter cleared - Showing all data'),
+        backgroundColor: Colors.teal,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -807,14 +711,17 @@ class DashboardScreenState extends State<DashboardScreen> {
               ListTile(
                 leading: const Icon(Icons.today),
                 title: const Text('Today'),
+                subtitle: const Text('Show only today\'s activities'),
                 onTap: () {
                   Navigator.pop(context);
                   _filterByDate(DateTime.now());
                 },
               ),
+              const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.weekend),
                 title: const Text('This Week'),
+                subtitle: const Text('Show last 7 days'),
                 onTap: () {
                   Navigator.pop(context);
                   _filterByDateRange(
@@ -823,9 +730,11 @@ class DashboardScreenState extends State<DashboardScreen> {
                   );
                 },
               ),
+              const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.calendar_month),
                 title: const Text('This Month'),
+                subtitle: const Text('Show current month'),
                 onTap: () {
                   Navigator.pop(context);
                   final firstDay =
@@ -833,12 +742,15 @@ class DashboardScreenState extends State<DashboardScreen> {
                   _filterByDateRange(firstDay, DateTime.now());
                 },
               ),
+              const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.clear_all),
-                title: const Text('Show All'),
+                leading: const Icon(Icons.clear_all, color: Colors.red),
+                title:
+                    const Text('Show All', style: TextStyle(color: Colors.red)),
+                subtitle: const Text('Reset filter to show all data'),
                 onTap: () {
                   Navigator.pop(context);
-                  _loadData();
+                  _resetFilter();
                 },
               ),
             ],
@@ -850,8 +762,7 @@ class DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _filterByDate(DateTime date) async {
     setState(() => _isLoading = true);
-    final data = await dbHelper.getRecords();
-    final filtered = data
+    final filtered = _allRecords
         .where((r) =>
             r.date.year == date.year &&
             r.date.month == date.month &&
@@ -860,22 +771,52 @@ class DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _records = filtered;
       _summary = _calculateWeeklySummary(filtered);
+      _activeFilter = 'Today';
       _isLoading = false;
     });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('📅 Filtered: Today (${filtered.length} activities)'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _filterByDateRange(DateTime start, DateTime end) async {
     setState(() => _isLoading = true);
-    final data = await dbHelper.getRecordsByDateRange(start, end);
+    final filtered = _allRecords
+        .where((r) =>
+            r.date.isAfter(start) &&
+            r.date.isBefore(end.add(const Duration(days: 1))))
+        .toList();
     setState(() {
-      _records = data;
-      _summary = _calculateWeeklySummary(data);
+      _records = filtered;
+      _summary = _calculateWeeklySummary(filtered);
+      _activeFilter =
+          start == DateTime(DateTime.now().year, DateTime.now().month, 1)
+              ? 'This Month'
+              : 'This Week';
       _isLoading = false;
     });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '📆 Filtered: $_activeFilter (${filtered.length} activities)'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
 
-// Chart Painter for custom chart
+// ============ CHART PAINTER ============
 class _ChartPainter extends CustomPainter {
   final List<int> stepsData;
   final List<DateTime> weekDays;
@@ -891,7 +832,6 @@ class _ChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    // Fixed: Using withValues() instead of withOpacity()
     final fillPaint = Paint()
       ..shader = const LinearGradient(
         colors: [Colors.tealAccent, Colors.transparent],
@@ -903,7 +843,6 @@ class _ChartPainter extends CustomPainter {
     final dotPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-
     final dotStrokePaint = Paint()
       ..color = Colors.tealAccent
       ..strokeWidth = 2
@@ -932,19 +871,14 @@ class _ChartPainter extends CustomPainter {
       }
     }
 
-    // Draw fill
     fillPath.lineTo(width - padding, height - padding);
     fillPath.close();
     canvas.drawPath(fillPath, fillPaint);
-
-    // Draw line
     canvas.drawPath(path, paint);
 
-    // Draw dots
     for (int i = 0; i < stepsData.length; i++) {
       final x = padding + (i / (stepsData.length - 1)) * chartWidth;
       final y = padding + chartHeight - (stepsData[i] / yMax) * chartHeight;
-
       canvas.drawCircle(Offset(x, y), 6, dotPaint);
       canvas.drawCircle(Offset(x, y), 6, dotStrokePaint);
     }

@@ -1,4 +1,4 @@
-package com.example.task4_fitnesstracherapp
+package com.example.task4_fitnesstrackerapp
 
 import io.flutter.embedding.android.FlutterActivity
 
