@@ -33,7 +33,5 @@ The Fitness Tracker App simplifies health monitoring by allowing users to manual
 3. Configure the environment variables (for Firebase/API keys).
 4. Run the application:
    `npm start` or `flutter run`
-
-## Design Philosophy
-The UI follows a minimalist approach with "glanceable" data—using high-contrast elements and progress visuals to ensure users can check their progress in seconds.
-
+📸 Preview
+(https://www.linkedin.com/posts/nizwa-mubeen-a027aa31a_codealpha-internship-flutter-activity-7480344397612519424-nwdC?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFDrZyIBUUgNhTAR6-5RGn1bDkUEuVsbzRQ)
